@@ -15,11 +15,11 @@
  */
 
 /*
- *       AP_RangeFinder_MaxsonarI2CXL.cpp - Arduino Library for MaxBotix I2C XL sonar
- *       Code by Randy Mackay. DIYDrones.com
+ *       This code was written for the SUAVE project 
+ *       It is based off of AP_RangeFinder_MaxsonarI2CXL.cpp
+ *       Modifications by Alex Larson
  *
- *       datasheet: http://www.maxbotix.com/documents/I2CXL-MaxSonar-EZ_Datasheet.pdf
- *
+ *      
  *       Sensor should be connected to the I2C port
  */
 
