@@ -161,7 +161,13 @@ void Buzzer::update()
                 break;
         }
     }
-
+    
+    //added by SUAVE 
+    //plays buzz if an object is detected
+    if(AP_Notify::events.obstacle_detected){
+       play_pattern(SINGLE_BUZZ); 
+    }
+    
     // check if armed status has changed
     if (_flags.armed != AP_Notify::flags.armed) {
         _flags.armed = AP_Notify::flags.armed;

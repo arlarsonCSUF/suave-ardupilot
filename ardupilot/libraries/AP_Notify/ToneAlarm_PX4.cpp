@@ -279,6 +279,10 @@ void ToneAlarm_PX4::update()
             stop_cont_tone();
         }
     }
+    //added by SUAVE
+    if(AP_Notify::events.obstacle_detected){ 
+       play_tone(AP_NOTIFY_PX4_TONE_QUIET_NEG_FEEDBACK); 
+    }
 
 }
 

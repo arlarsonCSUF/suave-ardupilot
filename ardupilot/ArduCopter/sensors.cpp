@@ -46,7 +46,12 @@ int16_t Copter::read_sonar(void)
     }
 
     int16_t temp_alt = sonar.distance_cm();
-
+    
+    //added by SUAVE
+    //if sonar reads closer than 20cm set object detected event 
+    if(temp_alt <= 20)
+        AP_Notify::events.obstacle_detected = 1;
+    
     if (temp_alt >= sonar.min_distance_cm() && 
         temp_alt <= sonar.max_distance_cm() * SONAR_RELIABLE_DISTANCE_PCT) {
         if ( sonar_alt_health < SONAR_ALT_HEALTH_MAX ) {
@@ -62,7 +67,7 @@ int16_t Copter::read_sonar(void)
     temp = max(temp, 0.707f);
     temp_alt = (float)temp_alt * temp;
  #endif
-
+            
     return temp_alt;
 #else
     return 0;
