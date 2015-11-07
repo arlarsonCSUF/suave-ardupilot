@@ -2,18 +2,16 @@
 
 // user defined variables
 
-// example variables used in Wii camera testing - replace with your own
 // variables
 #ifdef USERHOOK_VARIABLES
 
-#if WII_CAMERA == 1
-WiiCamera           ircam;
-int                 WiiRange=0;
-int                 WiiRotation=0;
-int                 WiiDisplacementX=0;
-int                 WiiDisplacementY=0;
-#endif  // WII_CAMERA
+#if SONAR_AVOIDANCE == 1
 
+#endif  // SONAR_AVOIDANCE
+	uint16_t avoidanceSensorReading = 0;
+	float avoidanceMagnitude = 0;
+	uint16_t avoidanceThreshold = 190;
+	uint16_t avoidanceGain = 5000;
 #endif  // USERHOOK_VARIABLES
 
 

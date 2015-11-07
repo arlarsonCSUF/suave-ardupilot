@@ -5,7 +5,6 @@
 #ifdef USERHOOK_INIT
 void Copter::userhook_init()
 {
-    asdfasdfashdj;ahsdflkjhasdfkjhasdflkjhasdflkhsdfkljhasjdkfhalksdhflkjasdfhljkasdhfk
     // put your initialisation code here
     // this will be called once at start-up
 }
@@ -28,8 +27,14 @@ void Copter::userhook_50Hz()
 #ifdef USERHOOK_MEDIUMLOOP
 void Copter::userhook_MediumLoop()
 {
-    // put your 10Hz code here
+    avoidanceSensorReading = sonar_alt;
+    if(avoidanceSensorReading < avoidanceThreshold)
+        //avoidanceMagnitude = avoidanceGain/(avoidanceSensorReading + 1);                                     //1/x
+        avoidanceMagnitude = avoidanceGain/avoidanceThreshold * (avoidanceThreshold - avoidanceSensorReading); //linear
+    else
+        avoidanceMagnitude = 0;
 }
+
 #endif
 
 #ifdef USERHOOK_SLOWLOOP
