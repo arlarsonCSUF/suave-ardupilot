@@ -724,6 +724,8 @@ private:
     void autotune_updating_p_up(float &tune_p, float tune_p_max, float tune_p_step_ratio, float target, float measurement_max);
     void autotune_updating_p_up_d_down(float &tune_d, float tune_d_min, float tune_d_step_ratio, float &tune_p, float tune_p_min, float tune_p_max, float tune_p_step_ratio, float target, float measurement_min, float measurement_max);
     void autotune_twitching_measure_acceleration(float &rate_of_change, float rate_measurement, float &rate_measurement_max);
+    bool avoid_init(bool ignore_checks);    // added for SUAVE
+    void avoid_run();                       // added for SUAVE
     bool brake_init(bool ignore_checks);
     void brake_run();
     bool circle_init(bool ignore_checks);

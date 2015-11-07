@@ -38,7 +38,7 @@ bool Copter::set_mode(uint8_t mode)
                 success = stabilize_init(ignore_checks);
             #endif
             break;
-
+        
         case ALT_HOLD:
             success = althold_init(ignore_checks);
             break;
@@ -77,6 +77,11 @@ bool Copter::set_mode(uint8_t mode)
 
         case FLIP:
             success = flip_init(ignore_checks);
+            break;
+            
+        //added by SUAVE    
+        case AVOID:                                 
+            success = avoid_init(ignore_checks);
             break;
 
 #if AUTOTUNE_ENABLED == ENABLED
@@ -189,6 +194,11 @@ void Copter::update_flight_mode()
 
         case FLIP:
             flip_run();
+            break;
+            
+        //added by SUAVE
+        case AVOID:
+            avoid_run();
             break;
 
 #if AUTOTUNE_ENABLED == ENABLED
@@ -362,6 +372,8 @@ void Copter::print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
     case BRAKE:
         port->print_P(PSTR("BRAKE"));
         break;
+    case AVOID:
+        port->print_P(PSTR("AVOID"));
     default:
         port->printf_P(PSTR("Mode(%u)"), (unsigned)mode);
         break;
