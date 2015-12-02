@@ -251,6 +251,10 @@ void Copter::init_ardupilot()
     init_sonar();
 #endif
 
+#if OBSTACLE_AVOIDANCE == ENABLED
+    init_obstacleDetector();
+#endif
+
     // initialise AP_RPM library
     rpm_sensor.init();
 

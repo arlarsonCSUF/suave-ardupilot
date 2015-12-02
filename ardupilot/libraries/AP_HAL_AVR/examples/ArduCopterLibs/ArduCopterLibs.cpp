@@ -43,6 +43,7 @@
 #include <AP_NavEKF/AP_NavEKF.h>
 #include <AP_NavEKF/AP_Nav_Common.h>
 #include <AP_BattMonitor/AP_BattMonitor.h>
+#include <AP_Obstacle_Detect/AP_Obstacle_Detect.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
 const AP_HAL::HAL& hal = AP_HAL_AVR_APM2;

@@ -193,3 +193,10 @@ void Copter::epm_update()
     epm.update();
 }
 #endif
+
+#if OBSTACLE_AVOIDANCE == ENABLED
+void Copter::init_obstacleDetector(void)
+{
+   obstacleDetector.init();
+}
+#endif

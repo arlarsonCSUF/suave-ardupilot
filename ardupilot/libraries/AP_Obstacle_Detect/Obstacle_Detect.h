@@ -14,8 +14,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __RANGEFINDER_H__
-#define __RANGEFINDER_H__
+#ifndef __OBSTACLE_DETECT_H__
+#define __OBSTACLE_DETECT_H__
 
 #include <AP_Common/AP_Common.h>
 #include <AP_HAL/AP_HAL.h>
@@ -24,55 +24,47 @@
 #include <AP_SerialManager/AP_SerialManager.h>
 
 // Maximum number of range finder instances available on this platform
-#define RANGEFINDER_MAX_INSTANCES 2
-#define RANGEFINDER_GROUND_CLEARANCE_CM_DEFAULT 10
-#define RANGEFINDER_PREARM_ALT_MAX_CM           200
-#define RANGEFINDER_PREARM_REQUIRED_CHANGE_CM   50
+#define DETECTOR_MAX_INSTANCES 1
+#define DETECTOR_GROUND_CLEARANCE_CM_DEFAULT 10
+#define DETECTOR_PREARM_ALT_MAX_CM           200
+#define DETECTOR_PREARM_REQUIRED_CHANGE_CM   50
 
 class AP_RangeFinder_Backend; 
  
-class RangeFinder
+class Detector
 {
 public:
     friend class AP_RangeFinder_Backend;
-
-    RangeFinder(AP_SerialManager &_serial_manager);
-
-    // RangeFinder driver types
-    enum RangeFinder_Type {
-        RangeFinder_TYPE_NONE   = 0,
-        RangeFinder_TYPE_ANALOG = 1,
-        RangeFinder_TYPE_MBI2C  = 2,
-        RangeFinder_TYPE_PLI2C  = 3,
-        RangeFinder_TYPE_PX4    = 4,
-        RangeFinder_TYPE_PX4_PWM= 5,
-        RangeFinder_TYPE_BBB_PRU= 6,
-        RangeFinder_TYPE_LWI2C  = 7,
-        RangeFinder_TYPE_LWSER  = 8,
-        RangeFinder_TYPE_GENI2C = 9
+    
+    Detector(AP_SerialManager &_serial_manager);
+    
+    // Detector driver types
+    enum Detector_Type {
+        Detector_TYPE_NONE   = 0,
+        RangeFinder_TYPE_GENI2C = 1
     };
 
-    enum RangeFinder_Function {
+    enum Detector_Function {
         FUNCTION_LINEAR    = 0,
         FUNCTION_INVERTED  = 1,
         FUNCTION_HYPERBOLA = 2
     };
 
-    enum RangeFinder_Status {
-        RangeFinder_NotConnected = 0,
-        RangeFinder_NoData,
-        RangeFinder_OutOfRangeLow,
-        RangeFinder_OutOfRangeHigh,
-        RangeFinder_Good
+    enum Detector_Status {
+        Detector_NotConnected = 0,
+        Detector_NoData,
+        Detector_OutOfRangeLow,
+        Detector_OutOfRangeHigh,
+        Detector_Good
     };
 
-    // The RangeFinder_State structure is filled in by the backend driver
-    struct RangeFinder_State {
-        uint8_t                instance;    // the instance number of this RangeFinder
+    // The Detector_State structure is filled in by the backend driver
+    struct Detector_State {
+        uint8_t                instance;    // the instance number of this Detector
         uint16_t               distance_cm; // distance: in cm
         uint16_t               voltage_mv;  // voltage in millivolts,
                                             // if applicable, otherwise 0
-        enum RangeFinder_Status status;     // sensor status
+        enum Detector_Status status;     // sensor status
         uint8_t                range_valid_count;   // number of consecutive valid readings (maxes out at 10)
         bool                   pre_arm_check;   // true if sensor has passed pre-arm checks
         uint16_t               pre_arm_distance_min;    // min distance captured during pre-arm checks
@@ -80,19 +72,13 @@ public:
     };
 
     // parameters for each instance
-    AP_Int8  _type[RANGEFINDER_MAX_INSTANCES];
-    AP_Int8  _pin[RANGEFINDER_MAX_INSTANCES];
-    AP_Int8  _ratiometric[RANGEFINDER_MAX_INSTANCES];
-    AP_Int8  _stop_pin[RANGEFINDER_MAX_INSTANCES];
-    AP_Int16 _settle_time_ms[RANGEFINDER_MAX_INSTANCES];
-    AP_Float _scaling[RANGEFINDER_MAX_INSTANCES];
-    AP_Float _offset[RANGEFINDER_MAX_INSTANCES];
-    AP_Int8  _function[RANGEFINDER_MAX_INSTANCES];
-    AP_Int16 _min_distance_cm[RANGEFINDER_MAX_INSTANCES];
-    AP_Int16 _max_distance_cm[RANGEFINDER_MAX_INSTANCES];
-    AP_Int8  _ground_clearance_cm[RANGEFINDER_MAX_INSTANCES];
-    AP_Int8  _address[RANGEFINDER_MAX_INSTANCES];
-    AP_Int16 _powersave_range;
+    AP_Int8  _type[DETECTOR_MAX_INSTANCES];
+    AP_Int16 _settle_time_ms[DETECTOR_MAX_INSTANCES];
+    AP_Float _scaling[DETECTOR_MAX_INSTANCES];
+    AP_Float _offset[DETECTOR_MAX_INSTANCES];
+    AP_Int16 _min_distance_cm[DETECTOR_MAX_INSTANCES];
+    AP_Int16 _max_distance_cm[DETECTOR_MAX_INSTANCES];
+    AP_Int8  _address[DETECTOR_MAX_INSTANCES];
 
     static const struct AP_Param::GroupInfo var_info[];
     
@@ -101,27 +87,20 @@ public:
         return num_instances;
     }
 
-    // detect and initialise any available rangefinders
+    // detect and initialise any available Detectors
     void init(void);
 
-    // update state of all rangefinders. Should be called at around
+    // update state of all Detectors. Should be called at around
     // 10Hz from main loop
     void update(void);
     
-#define _RangeFinder_STATE(instance) state[instance]
+#define _Detector_STATE(instance) state[instance]
 
     uint16_t distance_cm(uint8_t instance) const {
-        return (instance<num_instances? _RangeFinder_STATE(instance).distance_cm : 0);
+        return (instance<num_instances? _Detector_STATE(instance).distance_cm : 0);
     }
     uint16_t distance_cm() const {
         return distance_cm(primary_instance);
-    }
-
-    uint16_t voltage_mv(uint8_t instance) const {
-        return _RangeFinder_STATE(instance).voltage_mv;
-    }
-    uint16_t voltage_mv() const {
-        return voltage_mv(primary_instance);
     }
 
     int16_t max_distance_cm(uint8_t instance) const {
@@ -137,16 +116,10 @@ public:
     int16_t min_distance_cm() const {
         return min_distance_cm(primary_instance);
     }
-    int16_t ground_clearance_cm(uint8_t instance) const {
-        return _ground_clearance_cm[instance];
-    }
-    int16_t ground_clearance_cm() const {
-        return _ground_clearance_cm[primary_instance];
-    }
-
+    
     // query status
-    RangeFinder_Status status(uint8_t instance) const;
-    RangeFinder_Status status(void) const {
+    Detector_Status status(uint8_t instance) const;
+    Detector_Status status(void) const {
         return status(primary_instance);
     }
 
@@ -161,35 +134,17 @@ public:
         return range_valid_count(primary_instance);
     }
     uint8_t range_valid_count(uint8_t instance) const {
-        return _RangeFinder_STATE(instance).range_valid_count;
+        return _Detector_STATE(instance).range_valid_count;
     }
-
-    /*
-      set an externally estimated terrain height. Used to enable power
-      saving (where available) at high altitudes.
-     */
-    void set_estimated_terrain_height(float height) {
-        estimated_terrain_height = height;
-    }
-
-    /*
-      returns true if pre-arm checks have passed for all range finders
-      these checks involve the user lifting or rotating the vehicle so that sensor readings between
-      the min and 2m can be captured
-     */
-    bool pre_arm_check() const;
 
 private:
-    RangeFinder_State state[RANGEFINDER_MAX_INSTANCES];
-    AP_RangeFinder_Backend *drivers[RANGEFINDER_MAX_INSTANCES];
-    uint8_t primary_instance:3;
-    uint8_t num_instances:3;
-    float estimated_terrain_height;
+    Detector_State state[DETECTOR_MAX_INSTANCES];
+    AP_RangeFinder_Backend *drivers[DETECTOR_MAX_INSTANCES];
+    uint8_t primary_instance:1;
+    uint8_t num_instances:1;
     AP_SerialManager &serial_manager;
-
     void detect_instance(uint8_t instance);
     void update_instance(uint8_t instance);  
 
-    void update_pre_arm_check(uint8_t instance);
 };
-#endif // __RANGEFINDER_H__
+#endif // __OBSTACLE_DETECT_H__

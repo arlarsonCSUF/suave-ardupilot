@@ -106,6 +106,9 @@
 #include <AC_PrecLand/AC_PrecLand.h>
 #include <AP_IRLock/AP_IRLock.h>
 #endif
+#if OBSTACLE_AVOIDANCE == ENABLED
+#include <AP_Obstacle_Detect/AP_Obstacle_Detect.h>
+#endif
 
 // AP_HAL to Arduino compatibility layer
 // Configuration
@@ -482,6 +485,12 @@ private:
     // Crop Sprayer
 #if SPRAYER == ENABLED
     AC_Sprayer sprayer;
+#endif
+
+//added by SUAVE
+#if OBSTACLE_AVOIDANCE == ENABLED
+    Detector obstacleDetector{serial_manager};
+    bool obstacleDetector_enabled; // enable user switch for sonar
 #endif
 
     // EPM Cargo Griper
@@ -968,6 +977,11 @@ private:
 #if PARACHUTE == ENABLED
     void do_parachute(const AP_Mission::Mission_Command& cmd);
 #endif
+
+#if OBSTACLE_AVOIDANCE == ENABLED
+    void init_obstacleDetector(void);
+#endif
+
 #if EPM_ENABLED == ENABLED
     void do_gripper(const AP_Mission::Mission_Command& cmd);
 #endif
