@@ -146,6 +146,7 @@ public:
         k_param_parachute,
         k_param_arming = 100,
         k_param_parachute_channel,
+        k_param_crash_accel_threshold,
 
         // 105: Extra parameters
         k_param_fence_retalt = 105,
@@ -221,6 +222,8 @@ public:
         k_param_camera = 160,
         k_param_camera_mount,
         k_param_camera_mount2,      // unused
+        k_param_adsb,
+        k_param_notify,
 
         //
         // Battery monitoring parameters
@@ -273,6 +276,8 @@ public:
         k_param_kff_pitch_to_throttle, // unused
         k_param_kff_throttle_to_pitch,
         k_param_scaling_speed,
+        k_param_quadplane,
+        k_param_rtl_radius,
 
         //
         // 210: flight modes
@@ -323,6 +328,8 @@ public:
         k_param_pidNavPitchAltitude, // unused
         k_param_pidWheelSteer, // unused
 
+        k_param_DataFlash = 253, // Logging Group
+
         // 254,255: reserved
     };
 
@@ -343,6 +350,7 @@ public:
     AP_Int8  rtl_autoland;
 
     AP_Int8  trim_rc_at_start;
+    AP_Int8  crash_accel_threshold;
     AP_Int8  crash_detection_enable;
 
     // Feed-forward gains
@@ -376,6 +384,7 @@ public:
     AP_Int16 waypoint_radius;
     AP_Int16 waypoint_max_radius;
     AP_Int16 loiter_radius;
+    AP_Int16 rtl_radius;
 
 #if GEOFENCE_ENABLED == ENABLED
     AP_Int8 fence_action;
@@ -500,18 +509,12 @@ public:
     RC_Channel_aux rc_6;
     RC_Channel_aux rc_7;
     RC_Channel_aux rc_8;
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     RC_Channel_aux rc_9;
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     RC_Channel_aux rc_10;
     RC_Channel_aux rc_11;
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     RC_Channel_aux rc_12;
     RC_Channel_aux rc_13;
     RC_Channel_aux rc_14;
-#endif
     uint8_t _dummy;
 
     Parameters() :
@@ -525,18 +528,12 @@ public:
         rc_6                                    (CH_6),
         rc_7                                    (CH_7),
         rc_8                                    (CH_8),
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
         rc_9                                    (CH_9),
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
         rc_10                                   (CH_10),
         rc_11                                   (CH_11),
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
         rc_12                                   (CH_12),
         rc_13                                   (CH_13),
         rc_14                                   (CH_14),
-#endif
         _dummy(0)
         {}
 };

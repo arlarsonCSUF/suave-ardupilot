@@ -9,7 +9,7 @@
 
 extern const AP_HAL::HAL& hal;
 
-const AP_Param::GroupInfo AP_Parachute::var_info[] PROGMEM = {
+const AP_Param::GroupInfo AP_Parachute::var_info[] = {
 
     // @Param: ENABLED
     // @DisplayName: Parachute release enabled or disabled
@@ -74,7 +74,7 @@ void AP_Parachute::release()
 
     // set release time to current system time
     if (_release_time == 0) {
-        _release_time = hal.scheduler->millis();
+        _release_time = AP_HAL::millis();
     }
 
     // update AP_Notify
@@ -90,7 +90,7 @@ void AP_Parachute::update()
     }
 
     // calc time since release
-    uint32_t time_diff = hal.scheduler->millis() - _release_time;
+    uint32_t time_diff = AP_HAL::millis() - _release_time;
 
     // check if we should release parachute
     if ((_release_time != 0) && !_release_in_progress) {

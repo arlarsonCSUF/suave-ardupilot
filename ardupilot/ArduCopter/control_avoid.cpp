@@ -4,21 +4,18 @@
 
 /*
  * control_avoid.pde - init and run calls for avoid flight mode
- *                     the avoid flight mode is a custom flight mode for the SUAVE project 
-                       the flight mode is a modified version of the stabilize flight mode
-                       
-                       the goal of the flight mode is to behave just like stabilize except
-                       when an object is detected ignore user input and have the autopilot
-                       take over to avoid a collision
  */
 
 // avoid_init - initialise avoid controller
 bool Copter::avoid_init(bool ignore_checks)
 {
+    // if landed and the mode we're switching from does not have manual throttle and the throttle stick is too high
+    if (motors.armed() && ap.land_complete && !mode_has_manual_throttle(control_mode) && (g.rc_3.control_in > get_non_takeoff_throttle())) {
+        return false;
+    }
     // set target altitude to zero for reporting
     pos_control.set_alt_target(0);
 
-    // avoid should never be made to fail
     return true;
 }
 
@@ -46,16 +43,8 @@ void Copter::avoid_run()
     // convert pilot input to lean angles
     // To-Do: convert get_pilot_desired_lean_angles to return angles as floats
     
-    #if CONFIG_SONAR == ENABLED 
-        //if detected obstacle is closer than avoidanceThreshold ignore user input and try to avoid
-        if(avoidanceSensorReading > avoidanceThreshold)
-            get_pilot_desired_lean_angles(channel_roll->control_in, channel_pitch->control_in, target_roll, target_pitch, aparm.angle_max);
-        else
-            get_pilot_desired_lean_angles(channel_roll->control_in,avoidanceMagnitude, target_roll, target_pitch, aparm.angle_max);
-            //avoidance avoidanceMagnitude is determined in UserCode.cpp
-    #else
-        get_pilot_desired_lean_angles(channel_roll->control_in,avoidanceMagnitude, target_roll, target_pitch, aparm.angle_max);
-    #endif
+    //float mixedInputRoll = channel_roll->control_in * 
+    get_pilot_desired_lean_angles(channel_roll->control_in, channel_pitch->control_in, target_roll, target_pitch, aparm.angle_max);
 
     // get pilot's desired yaw rate
     target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->control_in);
@@ -64,7 +53,7 @@ void Copter::avoid_run()
     pilot_throttle_scaled = get_pilot_desired_throttle(channel_throttle->control_in);
 
     // call attitude controller
-    attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(target_roll, target_pitch, target_yaw_rate, get_smoothing_gain());
+    attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(target_roll, target_pitch, target_yaw_rate);
 
     // body-frame rate controller is run directly from 100hz loop
 

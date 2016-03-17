@@ -97,11 +97,11 @@ void Buzzer::update()
             case ARMING_BUZZ:
                 // record start time
                 if (_pattern_counter == 1) {
-                    _arming_buzz_start_ms = hal.scheduler->millis();
+                    _arming_buzz_start_ms = AP_HAL::millis();
                     on(true);
                 } else {
                     // turn off buzzer after 3 seconds
-                    if (hal.scheduler->millis() - _arming_buzz_start_ms >= BUZZER_ARMING_BUZZ_MS) {
+                    if (AP_HAL::millis() - _arming_buzz_start_ms >= BUZZER_ARMING_BUZZ_MS) {
                         _arming_buzz_start_ms = 0;
                         on(false);
                         _pattern = NONE;
@@ -161,13 +161,7 @@ void Buzzer::update()
                 break;
         }
     }
-    
-    //added by SUAVE 
-    //plays buzz if an object is detected
-    if(AP_Notify::events.obstacle_detected){
-       play_pattern(SINGLE_BUZZ); 
-    }
-    
+
     // check if armed status has changed
     if (_flags.armed != AP_Notify::flags.armed) {
         _flags.armed = AP_Notify::flags.armed;

@@ -3,8 +3,8 @@
 #ifndef _PLANE_H
 #define _PLANE_H
 
-#define THISFIRMWARE "ArduPlane V3.4.1dev"
-#define FIRMWARE_VERSION 3,4,1,FIRMWARE_VERSION_TYPE_DEV
+#define THISFIRMWARE "ArduPlane V3.5.0beta1"
+#define FIRMWARE_VERSION 3,5,0,FIRMWARE_VERSION_TYPE_BETA
 
 /*
    Lead developer: Andrew Tridgell
@@ -38,7 +38,6 @@
 
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Common/AP_Common.h>
-#include <AP_Progmem/AP_Progmem.h>
 #include <AP_Menu/AP_Menu.h>
 #include <AP_Param/AP_Param.h>
 #include <StorageManager/StorageManager.h>
@@ -47,8 +46,8 @@
 #include <AP_Compass/AP_Compass.h>     // ArduPilot Mega Magnetometer Library
 #include <AP_Math/AP_Math.h>        // ArduPilot Mega Vector/Matrix math Library
 #include <AP_ADC/AP_ADC.h>         // ArduPilot Mega Analog to Digital Converter Library
-#include <AP_ADC_AnalogSource/AP_ADC_AnalogSource.h>
 #include <AP_InertialSensor/AP_InertialSensor.h> // Inertial Sensor Library
+#include <AP_AccelCal/AP_AccelCal.h>                // interface and maths for accelerometer calibration
 #include <AP_AHRS/AP_AHRS.h>         // ArduPilot Mega DCM Library
 #include <RC_Channel/RC_Channel.h>     // RC Channel Library
 #include <AP_RangeFinder/AP_RangeFinder.h>     // Range finder library
@@ -95,6 +94,9 @@
 #include <AP_OpticalFlow/AP_OpticalFlow.h>     // Optical Flow library
 #include <AP_RSSI/AP_RSSI.h>                   // RSSI Library
 #include <AP_Parachute/AP_Parachute.h>
+#include <AP_ADSB/AP_ADSB.h>
+
+#include "quadplane.h"
 
 // Configuration
 #include "config.h"
@@ -135,6 +137,7 @@ public:
     friend class GCS_MAVLINK;
     friend class Parameters;
     friend class AP_Arming_Plane;
+    friend class QuadPlane;
 
     Plane(void);
 
@@ -146,9 +149,6 @@ private:
     // key aircraft parameters passed to multiple libraries
     AP_Vehicle::FixedWing aparm;
     AP_HAL::BetterStream* cliSerial;
-
-    // the rate we run the main loop 
-    const AP_InertialSensor::Sample_rate ins_sample_rate = AP_InertialSensor::RATE_50HZ;
 
     // Global parameters are all contained within the 'g' class.
     Parameters g;
@@ -277,7 +277,7 @@ private:
 
 #if OPTFLOW == ENABLED
     // Optical flow sensor
-    OpticalFlow optflow;
+    OpticalFlow optflow{ahrs};
 #endif
 
     // Rally Ponints
@@ -494,18 +494,27 @@ private:
 
         // barometric altitude at start of takeoff
         float baro_takeoff_alt;
+
+        // are we in VTOL mode?
+        bool vtol_mode:1;
     } auto_state;
 
     struct {
         // on hard landings, only check once after directly a landing so you
         // don't trigger a crash when picking up the aircraft
-        bool checkHardLanding:1;
+        bool checkedHardLanding:1;
 
         // crash detection. True when we are crashed
         bool is_crashed:1;
 
+        // impact detection flag. Expires after a few seconds via impact_timer_ms
+        bool impact_detected:1;
+
         // debounce timer
         uint32_t debounce_timer_ms;
+
+        // length of time impact_detected has been true. Times out after a few seconds. Used to clip isFlyingProbability
+        uint32_t impact_timer_ms;
     } crash_state;
 
     // true if we are in an auto-throttle mode, which means
@@ -559,6 +568,20 @@ private:
 #if AP_TERRAIN_AVAILABLE
     AP_Terrain terrain {ahrs, mission, rally};
 #endif
+
+    AP_ADSB adsb {ahrs};
+    struct {
+
+        // flag to signify the current mode is set by ADSB evasion logic
+        bool is_evading:1;
+
+        // generic timestamp for evasion algorithms
+        uint32_t timestamp_ms;
+
+        // previous wp to restore to when switching between modes back to AUTO
+        Location prev_wp;
+    } adsb_state;
+
 
     // Outback Challenge Failsafe Support
 #if OBC_FAILSAFE == ENABLED
@@ -695,6 +718,9 @@ private:
     // time that rudder arming has been running
     uint32_t rudder_arm_timer;
 
+    // support for quadcopter-plane
+    QuadPlane quadplane{ahrs};
+    
     void demo_servos(uint8_t i);
     void adjust_nav_pitch_throttle(void);
     void update_load_factor(void);
@@ -720,14 +746,14 @@ private:
     void gcs_send_mission_item_reached_message(uint16_t mission_index);
     void gcs_data_stream_send(void);
     void gcs_update(void);
-    void gcs_send_text_P(MAV_SEVERITY severity, const prog_char_t *str);
+    void gcs_send_text(MAV_SEVERITY severity, const char *str);
     void gcs_send_airspeed_calibration(const Vector3f &vg);
     void gcs_retry_deferred(void);
 
     void do_erase_logs(void);
     void Log_Write_Attitude(void);
     void Log_Write_Performance();
-    bool Log_Write_Startup(uint8_t type);
+    void Log_Write_Startup(uint8_t type);
     void Log_Write_Control_Tuning();
     void Log_Write_TECS_Tuning(void);
     void Log_Write_Nav_Tuning();
@@ -787,6 +813,8 @@ private:
     bool verify_change_alt();
     bool verify_within_distance();
     bool verify_altitude_wait(const AP_Mission::Mission_Command &cmd);
+    bool verify_vtol_takeoff(const AP_Mission::Mission_Command &cmd);
+    bool verify_vtol_land(const AP_Mission::Mission_Command &cmd);
     void do_loiter_at_location();
     void do_take_picture();
     void log_picture();
@@ -831,7 +859,7 @@ private:
     void navigate();
     void calc_airspeed_errors();
     void calc_gndspeed_undershoot();
-    void update_loiter();
+    void update_loiter(uint16_t radius);
     void update_cruise();
     void update_fbwb_speed_height(void);
     void setup_turn_angle(void);
@@ -905,11 +933,16 @@ private:
     void one_second_loop(void);
     void airspeed_ratio_update(void);
     void update_mount(void);
+    void update_trigger(void);    
     void log_perf_info(void);
     void compass_save(void);
     void update_logging1(void);
     void update_logging2(void);
     void terrain_update(void);
+    void adsb_update(void);
+    bool adsb_evasion_start(void);
+    void adsb_evasion_stop(void);
+    void adsb_evasion_ongoing(void);
     void update_flight_mode(void);
     void stabilize();
     void set_servos_idle(void);
@@ -917,7 +950,8 @@ private:
     void update_aux();
     void update_is_flying_5Hz(void);
     void crash_detection_update(void);
-    void gcs_send_text_fmt(const prog_char_t *fmt, ...);
+    bool in_preLaunch_flight_stage(void);
+    void gcs_send_text_fmt(MAV_SEVERITY severity, const char *fmt, ...);
     void handle_auto_mode(void);
     void calc_throttle();
     void calc_nav_roll();
@@ -956,6 +990,8 @@ private:
     void do_altitude_wait(const AP_Mission::Mission_Command& cmd);
     void do_continue_and_change_alt(const AP_Mission::Mission_Command& cmd);
     void do_loiter_to_alt(const AP_Mission::Mission_Command& cmd);
+    void do_vtol_takeoff(const AP_Mission::Mission_Command& cmd);
+    void do_vtol_land(const AP_Mission::Mission_Command& cmd);
     bool verify_nav_wp(const AP_Mission::Mission_Command& cmd);
     void do_wait_delay(const AP_Mission::Mission_Command& cmd);
     void do_change_alt(const AP_Mission::Mission_Command& cmd);
@@ -970,16 +1006,14 @@ private:
     void run_cli(AP_HAL::UARTDriver *port);
     bool restart_landing_sequence();
     void log_init();
-    uint32_t millis() const;
-    uint32_t micros() const;
     void init_capabilities(void);
     void dataflash_periodic(void);
     uint16_t throttle_min(void) const;
-    
     void do_parachute(const AP_Mission::Mission_Command& cmd);
     void parachute_check();
     void parachute_release();
     bool parachute_manual_release();
+    void accel_cal_update(void);
 
 public:
     void mavlink_delay_cb();
@@ -1017,5 +1051,8 @@ public:
 
 extern const AP_HAL::HAL& hal;
 extern Plane plane;
+
+using AP_HAL::millis;
+using AP_HAL::micros;
 
 #endif // _PLANE_H_

@@ -17,7 +17,7 @@ struct PACKED log_Test {
     int32_t  l1, l2;
 };
 
-static const struct LogStructure log_structure[] PROGMEM = {
+static const struct LogStructure log_structure[] = {
     LOG_COMMON_STRUCTURES,
     { LOG_TEST_MSG, sizeof(log_Test),       
     "TEST", "HHHHii",        "V1,V2,V3,V4,L1,L2" }
@@ -34,7 +34,7 @@ public:
 
 private:
 
-    DataFlash_Class dataflash{PSTR("DF Test 0.1")};
+    DataFlash_Class dataflash{"DF Test 0.1"};
     void print_mode(AP_HAL::BetterStream *port, uint8_t mode);
 };
 
@@ -57,7 +57,8 @@ void DataFlashTest::setup(void)
 
     // We start to write some info (sequentialy) starting from page 1
     // This is similar to what we will do...
-    log_num = dataflash.StartNewLog();
+    dataflash.StartNewLog();
+    log_num = dataflash.find_last_log();
     hal.console->printf("Using log number %u\n", log_num);
     hal.console->println("After testing perform erase before using DataFlash for logging!");
     hal.console->println("");
@@ -67,7 +68,7 @@ void DataFlashTest::setup(void)
     uint16_t i;
 
     for (i = 0; i < NUM_PACKETS; i++) {
-        uint32_t start = hal.scheduler->micros();
+        uint32_t start = AP_HAL::micros();
         // note that we use g++ style initialisers to make larger
         // structures easier to follow        
         struct log_Test pkt = {
@@ -80,7 +81,7 @@ void DataFlashTest::setup(void)
             l2    : (int32_t)(i * 16268)
         };
         dataflash.WriteBlock(&pkt, sizeof(pkt));
-        total_micros += hal.scheduler->micros() - start;
+        total_micros += AP_HAL::micros() - start;
         hal.scheduler->delay(20);
     }
 
@@ -110,7 +111,7 @@ void DataFlashTest::loop(void)
 
 void DataFlashTest::print_mode(AP_HAL::BetterStream *port, uint8_t mode)
 {
-    port->printf_P(PSTR("Mode(%u)"), (unsigned)mode);
+    port->printf("Mode(%u)", (unsigned)mode);
 }
 
 /*
