@@ -15,12 +15,13 @@ static void setup_uart(AP_HAL::UARTDriver *uart, const char *name)
         return;
     }
     uart->begin(57600);
+    uart->printf("1");
 }
 
 void Copter::userhook_init()
 {
     setup_uart(hal.uartE, "uartE");
-    hal.uartE->printf("\n");
+    
     // put your initialisation code here
     // this will be called once at start-up
 }
@@ -44,38 +45,54 @@ static void send_uart(AP_HAL::UARTDriver *uart, uint8_t *data, uint16_t numberOf
     }
 }
 
+void sendVelocity(AP_HAL::UARTDriver *uart,float v){
+    uint8_t header[] ={0x02};
+    send_uart(uart,header,sizeof(header));
+    send_uart(uart,(uint8_t*)&v, sizeof(v));    
+}
+
 int readInt(AP_HAL::UARTDriver *uart){
+    //MSB = most significant Byte, LSB = least significant Byte
     uint8_t MSB = uart->read();    
     uint8_t LSB = uart->read();
-    return LSB1 | MSB1 << 8;    
+    return LSB | MSB << 8;    
 }
     
 void Copter::userhook_50Hz()
 {
     AP_HAL::UARTDriver *uartSensor = hal.uartE;
- 
+    //
+    const Vector3f &vel = inertial_nav.get_velocity();
+    float vX = vel.x;
+    sendVelocity(uartSensor,vX);
+     
     while(uartSensor->available()){
         uint8_t messageType  = uartSensor->read();       //determine message type
-        
+        //hal.uartA->printf("messageType:%d",messageType);
         switch (messageType){
-            case 0x00:{              	                //message for avoidance forces
+            
+            case 0x00:{
                 while(uartSensor->available() < 4);      //wait until four bytes are available
-                //We read 4 bytes to create 2 16-bit ints 
-                //MSB = most significant Byte, LSB = least significant Byte
-                uint8_t MSB1 = uartSensor->read();    
-                uint8_t LSB1 = uartSensor->read();
-                uint8_t MSB2 = uartSensor->read();    
-                uint8_t LSB2 = uartSensor->read();
-                
-                avoidancePitchForce = LSB1 | MSB1 << 8;   //combine MSB and LSB to make 16bit int
-                avoidanceRollForce = LSB2 | MSB2 << 8;  
+                //We read 4 bytes to create 2 16-bit ints      
+                avoidancePitchForce = readInt(uartSensor);   //combine MSB and LSB to make 16bit int
+                avoidanceRollForce = readInt(uartSensor);  
                 hal.uartA->printf("pitch:%d\n",avoidancePitchForce); 
                 hal.uartA->printf("roll:%d\n",avoidanceRollForce);          
                 break;
             }
             
             case 0x01:{
-                //uartSensor->read((char*)&x, sizeof(x));
+                while(uartSensor->available() < 4);
+                
+                float x = 1;
+                char *f = (char*)&x;
+                for(uint8_t i=0; i < sizeof(x); i++){
+                    char c = uartSensor->read();
+                    f[i] = c;              
+                }
+                constrain_float(x,0,1);
+                magnitudeUserInput = x;
+                hal.uartA->printf("userInput:%f\n",magnitudeUserInput);
                 break;
             }
             
@@ -91,6 +108,8 @@ void Copter::userhook_50Hz()
             
         }      
     } 
+    
+    
     // put your 50Hz code here
 }
 #endif

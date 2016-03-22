@@ -38,13 +38,14 @@ void Copter::avoid_run()
     }
 
     // apply SIMPLE mode transform to pilot inputs
-    update_simple_mode();
+    update_simple_mode(); 
 
     // convert pilot input to lean angles
     // To-Do: convert get_pilot_desired_lean_angles to return angles as floats
     
-    //float mixedInputRoll = channel_roll->control_in * 
-    get_pilot_desired_lean_angles(channel_roll->control_in, channel_pitch->control_in, target_roll, target_pitch, aparm.angle_max);
+    float mixedInputRoll = channel_roll->control_in * magnitudeUserInput + avoidanceRollForce * (1-magnitudeUserInput);
+    float mixedInputPitch = channel_pitch->control_in * magnitudeUserInput + avoidancePitchForce * (1-magnitudeUserInput);
+    get_pilot_desired_lean_angles(mixedInputRoll, mixedInputPitch, target_roll, target_pitch, aparm.angle_max);
 
     // get pilot's desired yaw rate
     target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->control_in);
@@ -53,7 +54,7 @@ void Copter::avoid_run()
     pilot_throttle_scaled = get_pilot_desired_throttle(channel_throttle->control_in);
 
     // call attitude controller
-    attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw(target_roll, target_pitch, target_yaw_rate);
+    attitude_control.input_euler_angle_roll_pitch_euler_rate_yaw_smooth(target_roll, target_pitch, target_yaw_rate,get_smoothing_gain());
 
     // body-frame rate controller is run directly from 100hz loop
 

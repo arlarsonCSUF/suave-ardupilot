@@ -50,6 +50,7 @@ void Copter::crash_check()
         gcs_send_text(MAV_SEVERITY_EMERGENCY,"Crash: Disarming");
         // disarm motors
         init_disarm_motors();
+        hal.uartA->printf("CRASH!");
     }
 }
 
